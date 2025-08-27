@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -22,67 +23,73 @@ func main() {
 
 	command := os.Args[1]
 
+	createCmd := flag.NewFlagSet("create", flag.ExitOnError)
+	quotaCmd := flag.NewFlagSet("quota", flag.ExitOnError)
+	idCmd := flag.NewFlagSet("id", flag.ExitOnError)
+	limitCmd := flag.NewFlagSet("limit", flag.ExitOnError)
+	deleteCmd := flag.NewFlagSet("delete", flag.ExitOnError)
+
 	switch command {
 	case "create":
-		if len(os.Args) < 3 {
-			log.Fatal("create command requires a path argument")
+		createPath := createCmd.String("path", "", "Path to create subvolume")
+		createCmd.Parse(os.Args[2:])
+		if *createPath == "" {
+			log.Fatal("create requires -path")
 		}
-		path := os.Args[2]
-		fmt.Printf("Creating subvolume at: %s\n", path)
-		if err := btrfs.SubvolCreate(path); err != nil {
+		fmt.Printf("Creating subvolume at: %s\n", *createPath)
+		if err := btrfs.SubvolCreate(*createPath); err != nil {
 			log.Fatalf("Failed to create subvolume: %v", err)
 		}
 		fmt.Println("Subvolume created successfully")
 
 	case "quota":
-		if len(os.Args) < 3 {
-			log.Fatal("quota command requires a mountpoint argument")
+		quotaMount := quotaCmd.String("mount", "", "Mountpoint to enable quota")
+		quotaCmd.Parse(os.Args[2:])
+		if *quotaMount == "" {
+			log.Fatal("quota requires -mount")
 		}
-		mountpoint := os.Args[2]
-		fmt.Printf("Enabling quota on: %s\n", mountpoint)
-		if err := btrfs.QuotaEnable(mountpoint); err != nil {
+		fmt.Printf("Enabling quota on: %s\n", *quotaMount)
+		if err := btrfs.QuotaEnable(*quotaMount); err != nil {
 			log.Fatalf("Failed to enable quota: %v", err)
 		}
 		fmt.Println("Quota enabled successfully")
 
 	case "id":
-		if len(os.Args) < 3 {
-			log.Fatal("id command requires a path argument")
+		idPath := idCmd.String("path", "", "Path to get subvolume ID")
+		idCmd.Parse(os.Args[2:])
+		if *idPath == "" {
+			log.Fatal("id requires -path")
 		}
-		path := os.Args[2]
-		fmt.Printf("Getting subvolume ID for: %s\n", path)
-		id, err := btrfs.GetSubvolID(path)
+		fmt.Printf("Getting subvolume ID for: %s\n", *idPath)
+		id, err := btrfs.GetSubvolID(*idPath)
 		if err != nil {
 			log.Fatalf("Failed to get subvolume ID: %v", err)
 		}
 		fmt.Printf("Subvolume ID: %d\n", id)
 
 	case "limit":
-		if len(os.Args) < 5 {
-			log.Fatal("limit command requires mountpoint, subvol_path, and bytes arguments")
-		}
-		mountpoint := os.Args[2]
-		subvolPath := os.Args[3]
-		bytes := os.Args[4]
+		limitMount := limitCmd.String("mount", "", "Mountpoint for quota limit")
+		limitSubvol := limitCmd.String("subvol", "", "Subvolume path for quota limit")
+		limitBytes := limitCmd.Uint64("bytes", 0, "Bytes for quota limit")
 
-		var maxBytes uint64
-		if _, err := fmt.Sscanf(bytes, "%d", &maxBytes); err != nil {
-			log.Fatalf("Invalid bytes value: %s", bytes)
+		limitCmd.Parse(os.Args[2:])
+		if *limitMount == "" || *limitSubvol == "" || *limitBytes == 0 {
+			log.Fatal("limit requires -mount, -subvol, and -bytes")
 		}
-
-		fmt.Printf("Setting quota limit: %d bytes for %s on %s\n", maxBytes, subvolPath, mountpoint)
-		if err := btrfs.QgroupLimit(mountpoint, subvolPath, maxBytes); err != nil {
+		fmt.Printf("Setting quota limit: %d bytes for %s on %s\n", *limitBytes, *limitSubvol, *limitMount)
+		if err := btrfs.QgroupLimit(*limitMount, *limitSubvol, *limitBytes); err != nil {
 			log.Fatalf("Failed to set quota limit: %v", err)
 		}
 		fmt.Println("Quota limit set successfully")
 
 	case "delete":
-		if len(os.Args) < 3 {
-			log.Fatal("delete command requires a path argument")
+		deletePath := deleteCmd.String("path", "", "Path to delete subvolume")
+		deleteCmd.Parse(os.Args[2:])
+		if *deletePath == "" {
+			log.Fatal("delete requires -path")
 		}
-		path := os.Args[2]
-		fmt.Printf("Deleting subvolume at: %s\n", path)
-		if err := btrfs.SubvolDelete(path); err != nil {
+		fmt.Printf("Deleting subvolume at: %s\n", *deletePath)
+		if err := btrfs.SubvolDelete(*deletePath); err != nil {
 			log.Fatalf("Failed to delete subvolume: %v", err)
 		}
 		fmt.Println("Subvolume deleted successfully")
