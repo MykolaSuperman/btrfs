@@ -1,4 +1,4 @@
-module github.com/msolianko/btrfs
+module github.com/MykolaSuperman/btrfs
 
 go 1.24.6
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/msolianko/btrfs"
+	"github.com/MykolaSuperman/btrfs"
 	"github.com/spf13/cobra"
 )
 
